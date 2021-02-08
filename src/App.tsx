@@ -7,11 +7,13 @@ type TodoType = {
   due: string
   task: string
   user_id: number
+  is_delete?: boolean
 }
 type NewTodoType = {
   due: string
   task: string
   user_id: number
+  is_delete?: boolean
 }
 
 type SessionType = {
@@ -64,6 +66,14 @@ const backendDeleteTodo = async (session: SessionType, todo: TodoType): Promise<
   if (session === null) { return }
 
   const response = await backendAPI("DELETE", `todos/${todo.id}`, session.token)
+  if (!response.ok) { return }
+  console.log("---- OK")
+}
+
+const backendRecoverTodo = async (session: SessionType, todo: TodoType): Promise<void> => {
+  if (session === null) { return }
+
+  const response = await backendAPI("PUT", `todos/${todo.id}/recover`, session.token)
   if (!response.ok) { return }
   console.log("---- OK")
 }
@@ -128,6 +138,13 @@ export const App: React.FC = () => {
         setTodos(await backendGetTodos(session))
       })()
   }
+  const recoverExec = (todo: TodoType) => {
+    console.log("== recover ", todo.id);
+    (async () => {
+        await backendRecoverTodo(session, todo)
+        setTodos(await backendGetTodos(session))
+      })()
+  }
   const loginExec = (email: string, password: string) => {
     console.log("== login ", email);
 
@@ -162,7 +179,7 @@ export const App: React.FC = () => {
         {pageState === "list" &&
         <div>
           <h1 className="title is-4">リスト</h1>
-          <TodoList todos={todos} editExec={editExec} deleteExec={deleteExec} />
+          <TodoList todos={todos} editExec={editExec} deleteExec={deleteExec} recoverExec={recoverExec} />
           <div className="buttons">
             <button onClick={() => addExec()} className="button is-primary">追加</button>
             <button onClick={() => logoutExec()} className="button is-warning">ログアウト</button>
@@ -178,8 +195,9 @@ type TodoListProps = {
   todos: TodoType[]
   editExec: (todo: TodoType) => void
   deleteExec: (todo: TodoType) => void
+  recoverExec: (todo: TodoType) => void
 }
-const TodoList: React.FC<TodoListProps> = ({todos, editExec, deleteExec}) => {
+const TodoList: React.FC<TodoListProps> = ({todos, editExec, deleteExec, recoverExec}) => {
   return (
     <table className="table is-striped">
       <thead>
@@ -189,7 +207,7 @@ const TodoList: React.FC<TodoListProps> = ({todos, editExec, deleteExec}) => {
       </thead>
       <tbody>
       {todos.map((todo, ix) => <TodoItem  key={ix} todo={todo}
-        editExec={editExec} deleteExec={deleteExec} />)}
+        editExec={editExec} deleteExec={deleteExec} recoverExec={recoverExec} />)}
       </tbody>
     </table>
   )
@@ -199,16 +217,21 @@ type TodoItemProps = {
   todo: TodoType
   editExec: (todo: TodoType) => void
   deleteExec: (todo: TodoType) => void
+  recoverExec: (todo: TodoType) => void
 }
-const TodoItem: React.FC<TodoItemProps> = ({todo, editExec, deleteExec}) => {
+const TodoItem: React.FC<TodoItemProps> = ({todo, editExec, deleteExec, recoverExec}) => {
   return (
-    <tr>
+    <tr className={todo.is_delete ? "has-text-grey-lighter" : undefined}>
       <td>{todo.due}</td>
       <td>{todo.task}</td>
       <td>
         <div className="buttons are-small">
-          <button onClick={() => editExec(todo)} className="button is-primary">編集</button>
-          <button onClick={() => deleteExec(todo)} className="button is-danger">削除</button>
+          {todo.is_delete ?
+            <button onClick={() => recoverExec(todo)} className="button is-warning">復旧</button> :
+          <>
+            <button onClick={() => editExec(todo)} className="button is-primary">編集</button>
+            <button onClick={() => deleteExec(todo)} className="button is-danger">削除</button>
+          </>}
         </div>
       </td>
     </tr>
