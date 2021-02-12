@@ -7,6 +7,7 @@ type TodoType = {
   due: string
   task: string
   user_id: number
+  user_name?: string
   is_delete?: boolean
 }
 type NewTodoType = {
@@ -202,7 +203,7 @@ const TodoList: React.FC<TodoListProps> = ({todos, editExec, deleteExec, recover
     <table className="table is-striped">
       <thead>
         <tr>
-          <th>期日</th><th>タスク</th><th></th>
+          <th>期日</th><th>名前</th><th>タスク</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -223,6 +224,7 @@ const TodoItem: React.FC<TodoItemProps> = ({todo, editExec, deleteExec, recoverE
   return (
     <tr className={todo.is_delete ? "has-text-grey-lighter" : undefined}>
       <td>{todo.due}</td>
+      <td>{todo.user_name ?? "不明"}</td>
       <td>{todo.task}</td>
       <td>
         <div className="buttons are-small">
