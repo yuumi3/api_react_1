@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useForm } from "react-hook-form"
 import 'bulma/css/bulma.css'
 
+// ------------------------------------------------------------
+
 type TodoType = {
   id: number
   due: string
@@ -14,19 +16,24 @@ type NewTodoType = {
   due: string
   task: string
   user_id: number
-  is_delete?: boolean
 }
-
 type SessionType = {
   id: number
   token: string
-} | null
+}
+
+type TodoNullType = TodoType | null
+type NewTodoNullType = NewTodoType | null
+type SessionNullType = SessionType | null
+
+// ------------------------------------------------------------
 
 const BackendURL = "http://localhost:3000"
 
 const backendAPI = async (method: string, path: string, token?: string, body?: string): Promise<Response> => {
   const headers:HeadersInit = token ? {"content-type": "application/json", "Authorization": `Token ${token}`} : {"content-type": "application/json"}
 
+  console.log(`---- ${method}: ${BackendURL}/${path}`, body ?? "")
   const response = await fetch(`${BackendURL}/${path}`, {method, mode: "cors", headers, body})
   if (!response.ok) {
     console.log('** error **', response)
@@ -34,57 +41,57 @@ const backendAPI = async (method: string, path: string, token?: string, body?: s
   return response
 }
 
-const backendGetTodos = async (session: SessionType): Promise<TodoType[]> => {
+const backendGetTodos = async (session: SessionNullType): Promise<TodoType[]> => {
   if (session === null) { return [] }
 
   const response = await backendAPI("GET", "todos", session.token)
   if (!response.ok) { return [] }
 
   const todos = await response.json()
-  console.log("----", todos)
+  console.log("  == Result", todos)
   return todos
 }
 
-const backendPostTodo = async (session: SessionType, todo: NewTodoType): Promise<void> => {
+const backendPostTodo = async (session: SessionNullType, todo: NewTodoType): Promise<void> => {
   if (session === null) { return }
 
   const response = await backendAPI("POST", "todos", session.token, JSON.stringify({todo: todo}))
   if (!response.ok) { return }
   const result = await response.json()
-  console.log("----", result)
+  console.log("  == Result", result)
 }
 
-const backendPutTodo = async (session: SessionType, todo: TodoType): Promise<void> => {
+const backendPutTodo = async (session: SessionNullType, todo: TodoType): Promise<void> => {
   if (session === null) { return }
 
   const response = await backendAPI("PUT", `todos/${todo.id}`, session.token, JSON.stringify({todo: todo}))
   if (!response.ok) { return }
   const result = await response.json()
-  console.log("----", result)
+  console.log("  == Result", result)
 }
 
-const backendDeleteTodo = async (session: SessionType, todo: TodoType): Promise<void> => {
+const backendDeleteTodo = async (session: SessionNullType, todo: TodoType): Promise<void> => {
   if (session === null) { return }
 
   const response = await backendAPI("DELETE", `todos/${todo.id}`, session.token)
   if (!response.ok) { return }
-  console.log("---- OK")
+  console.log("  == Ok")
 }
 
-const backendRecoverTodo = async (session: SessionType, todo: TodoType): Promise<void> => {
+const backendRecoverTodo = async (session: SessionNullType, todo: TodoType): Promise<void> => {
   if (session === null) { return }
 
   const response = await backendAPI("PUT", `todos/${todo.id}/recover`, session.token)
   if (!response.ok) { return }
-  console.log("---- OK")
+  console.log("  == Ok")
 }
 
-const backendPostLogin = async (email: string, password: string): Promise<SessionType> => {
+const backendPostLogin = async (email: string, password: string): Promise<SessionNullType> => {
   const response = await backendAPI("POST", "logins", undefined, JSON.stringify({email: email, password: password}))
   if (!response.ok) { return null }
 
   const result = await response.json()
-  console.log("----", result)
+  console.log("  == Result", result)
   if (result.auth) {
     return {id: result.id, token: result.token}
   } else {
@@ -92,17 +99,15 @@ const backendPostLogin = async (email: string, password: string): Promise<Sessio
   }
 }
 
-type PageStateType = "list" | "edit" | "add" | "login"
-type EditTodoType = TodoType | null
-type AddTodoType = NewTodoType | null
+// ------------------------------------------------------------
 
-// -----------------------------------------------------
+type PageStateType = "list" | "edit" | "add" | "login"
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<TodoType[]>([])
-  const [editTodo, setEditTodo] = useState<EditTodoType>(null)
+  const [editTodo, setEditTodo] = useState<TodoNullType>(null)
   const [pageState, setPageState] = useState<PageStateType>("login")
-  const [session, setSession] = useState<SessionType>(null)
+  const [session, setSession] = useState<SessionNullType>(null)
   const [loginFailed, setLoginFailed] = useState(false)
 
   useEffect(() => {(async () => setTodos(await backendGetTodos(session)))()}, [session])
@@ -111,8 +116,7 @@ export const App: React.FC = () => {
     setPageState("edit")
     setEditTodo(todo)
   }
-  const editDone = (newTodo: EditTodoType) => {
-    console.log("== update ", newTodo)
+  const editDone = (newTodo: TodoNullType) => {
     if (newTodo) {(async () => {
         await backendPutTodo(session, newTodo)
         setTodos(await backendGetTodos(session))
@@ -123,9 +127,8 @@ export const App: React.FC = () => {
   const addExec = () => {
     setPageState("add")
   }
-  const addDone = (newTodo: AddTodoType) => {
-    console.log("== add ", newTodo)
-    if (newTodo) {(async () => {
+  const addDone = (newTodo: NewTodoNullType) => {
+     if (newTodo) {(async () => {
         await backendPostTodo(session, newTodo)
         setTodos(await backendGetTodos(session))
       })()
@@ -133,22 +136,18 @@ export const App: React.FC = () => {
     setPageState("list")
   }
   const deleteExec = (todo: TodoType) => {
-    console.log("== delete ", todo.id);
     (async () => {
         await backendDeleteTodo(session, todo)
         setTodos(await backendGetTodos(session))
       })()
   }
   const recoverExec = (todo: TodoType) => {
-    console.log("== recover ", todo.id);
     (async () => {
         await backendRecoverTodo(session, todo)
         setTodos(await backendGetTodos(session))
       })()
   }
   const loginExec = (email: string, password: string) => {
-    console.log("== login ", email);
-
     (async () => {
       const login = await backendPostLogin(email, password)
       if (login) {
@@ -243,7 +242,7 @@ const TodoItem: React.FC<TodoItemProps> = ({todo, editExec, deleteExec, recoverE
 type TodoFormProps = {
   title: string
   todo: TodoType
-  done: (newTodo: EditTodoType) => void
+  done: (newTodo: TodoNullType) => void
 }
 const TodoForm: React.FC<TodoFormProps> = ({title, todo, done}) => {
   type TodoInputs = {
@@ -300,7 +299,7 @@ const TodoForm: React.FC<TodoFormProps> = ({title, todo, done}) => {
 
 type EditTodoProps = {
   todo: TodoType
-  editDone: (newTodo: EditTodoType) => void
+  editDone: (newTodo: TodoNullType) => void
 }
 const EditTodo: React.FC<EditTodoProps> = ({todo, editDone}) => {
   return <TodoForm title="編集" todo={todo} done={editDone}/>
@@ -309,10 +308,11 @@ const EditTodo: React.FC<EditTodoProps> = ({todo, editDone}) => {
 
 type AddTodoProps = {
   userId: number
-  addDone: (newTodo: AddTodoType) => void
+  addDone: (newTodo: NewTodoNullType) => void
 }
 const AddTodo: React.FC<AddTodoProps> = ({userId, addDone}) => {
-  return <TodoForm title="追加" todo={{id: 0, due: "2021-02-06", task: "", user_id: userId}} done={addDone}/>
+  const today = (new Date()).toJSON().substr(0,10)
+  return <TodoForm title="追加" todo={{id: 0, due: today, task: "", user_id: userId}} done={addDone}/>
 }
 
 type LoginProps ={
