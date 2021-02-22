@@ -28,7 +28,7 @@ type SessionNullType = SessionType | null
 
 // ------------------------------------------------------------
 
-const BackendURL = "http://localhost:3000"
+const BackendURL = "http://localhost:3000/api/v1"
 
 const backendAPI = async (method: string, path: string, token?: string, body?: string): Promise<Response> => {
   const headers:HeadersInit = token ? {"content-type": "application/json", "Authorization": `Token ${token}`} : {"content-type": "application/json"}
